@@ -1,0 +1,7 @@
+setup: ne2e-few-shot-with-name
+data_type: NE2E
+data_file: rq1-eval
+model_name: gpt-3.5-turbo-16k
+temperature: 0
+sample_size: 1
+stack_trace_max_length: 8

@@ -1,0 +1,21 @@
+pyrightconfig.json
+
+# Temp file
+*~
+\#*\#
+.DS_Store
+
+_work/tacc-task/
+_work/raw-data-debug
+_work/data-debug
+_work/data/
+_work/
+.vscode/
+
+scripts/tacc/.tacc-logs
+
+.devcontainer/
+
+*.tar.gz
+.tacc-logs/
+.env

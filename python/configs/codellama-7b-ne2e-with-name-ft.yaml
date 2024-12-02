@@ -1,0 +1,61 @@
+setup: ne2e-with-name-ft
+data_type: NE2E
+system_message: You are a helpful programming assistant and an expert Java programmer. You are helping a user writing exceptional-behavior tests for their Java code.
+with_name: True
+
+base_model_name: codellama/CodeLlama-7b-Instruct-hf
+model_name: lora-codellama-7b
+zero_shot: false
+
+# data
+training_data: setup/ne2e-with-name-ft/train/train/
+training_data_file: train-ne2e.jsonl
+val_data: setup/ne2e-with-name-ft/train/val/
+val_data_file: val-ne2e.jsonl
+test_data: setup/ne2e-with-name-ft/eval/test
+test_data_file: test-ne2e.jsonl
+
+quant_config:
+  load_in_8bit: true
+  # load_in_4bit: true
+  # bnb_4bit_quant_type: nf4
+  # bnb_4bit_use_double_quant: false
+
+lora_config:
+  lora_alpha: 16
+  lora_dropout: 0.1
+  r: 8
+  bias: none
+  task_type: CAUSAL_LM
+
+train_args:
+  num_train_epochs: 1
+  per_device_train_batch_size: 1
+  gradient_accumulation_steps: 2
+  optim: paged_adamw_32bit
+  save_steps: 100
+  save_total_limit: 10
+  load_best_model_at_end: true
+  logging_steps: 25
+  learning_rate: 0.0002
+  weight_decay: 0.001
+  fp16: false
+  bf16: true
+  max_grad_norm: 0.3
+  max_steps: -1
+  warmup_ratio: 0.03
+  group_by_length: true
+  lr_scheduler_type: constant
+  report_to: tensorboard
+  evaluation_strategy: steps
+  eval_steps: 100
+
+SFTTrainer:
+  max_seq_length: 4096
+
+prompt_max_length: 3584
+
+GenerationConfig:
+  max_new_tokens: 512
+  do_sample: true
+  temperature: 0.2
