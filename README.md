@@ -172,7 +172,7 @@ You will see `_work/setup/conditionnestack2e-all-no-name-ft/eval/rq2/test-condit
 
 # Experiments
 
-[sec-exp]: #running-experiments
+[sec-exp]: #experiments
 
 ## Training
 
