@@ -1,9 +1,17 @@
 # 🐲🔨 exLong: Generating Exceptional Behavior Tests with Large Language Models 
+exLong is a large language model instruction-tuned from CodeLlama and embeds reasoning about 
+- **traces** that lead to throw statements
+- **conditional expressions** that guard throw statements
+- **non-exceptional behavior tests** that execute similar traces
+
+# About
 This repo hosts the code and data for the following ICSE 2025 paper:
 
 Title: [exLong: Generating Exceptional Behavior Tests with Large Language Models](https://arxiv.org/abs/2208.05446)
 
 Authors: [Jiyang Zhang](https://jiyangzhang.github.io/), [Yu Liu](https://sweetstreet.github.io/), [Pengyu Nie](https://pengyunie.github.io/), [Junyi Jessy Li](https://jessyli.com/), [Milos Gligoric](http://users.ece.utexas.edu/~gligoric/)
+
+
 
 ```bibtex
 @inproceedings{ZhangETAL25exLong,
