@@ -49,6 +49,7 @@ class LLMCodeEvaluator:
         self.exp = self.config["model_name"]
         if train_seed is not None:
             self.exp += f"-{train_seed}"
+        eval_set = self.config.get("split", "test")
         self.prediction_dir = (
             Macros.exp_dir / self.setup / self.exp / f"{eval_set}-results"
         )
@@ -56,7 +57,6 @@ class LLMCodeEvaluator:
         repos_file = Macros.work_dir / "repos" / "filtered" / "repos.json"
         self.model_results_dir = Macros.results_dir / "model-results"
         su.io.mkdir(self.eval_out_dir)
-        eval_set = self.config.get("split", "test")
         self.eval_set = f"eval/{eval_set}"
         if eval_set == "real-test":
             self.eval_set = "real-eval/test"
@@ -193,7 +193,9 @@ class LLMCodeEvaluator:
                     llm_results_with_metrics.extend(llm_results_new)
                 pbar.update(1)
         runtime_metrics_summary = summarize_metrics(aggregate_metrics(run_time_metrics))
-        llm_results_with_metrics = sorted(llm_results_with_metrics, key=lambda x: x.id)
+        llm_results_with_metrics = sorted(
+            llm_results_with_metrics, key=lambda x: int(x.id)
+        )
         save_dataset(self.prediction_dir, llm_results_with_metrics, clz=LLMResults)
         if selected_ids:
             results_file_name = f"selected-{len(selected_ids)}-{self.setup}-{self.exp}-{self.eval_set}-runtime-metrics.json".replace(
@@ -289,6 +291,7 @@ class LLMCodeEvaluator:
         """
 
         llm_outputs = load_dataset(save_dir=self.prediction_dir, clz=LLMResults)
+        breakpoint()
         return llm_outputs
 
     ########################
