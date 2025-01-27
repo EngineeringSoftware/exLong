@@ -20,10 +20,6 @@ from etestgen.llm.utils import (
 )
 
 logger = su.log.get_logger(__name__)
-# openai.organization = "org-yF1uZ50476QV6DGIWNxAdov4"  # Milos's
-# openai.organization = "org-ccIyHj49SsrKUQWXHrIRc8tD"
-# openai.api_key = "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"  # Milos's
-# openai.api_key = "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"  # Jiyang
 
 
 class OpenAIRunner:
