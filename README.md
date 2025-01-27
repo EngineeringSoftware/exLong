@@ -109,6 +109,7 @@ print(generated_code)
 [sec-setup]: #set-up
 
 ## Dependencies Set Up
+[sec-dep]: #dependencies-set-up
 
 1. Create conda environment
 ```bash
@@ -128,8 +129,9 @@ pip install packaging
 export CUDA_HOME=/opt/apps/cuda/12.0/
 pip3 install -e '.[flash-attn,deepspeed]'
 ```
-
 ## Experiments Set Up
+[sec-setupexp]: #experiments-set-up
+
 1. Download raw dataset
 ```bash
 mkdir -p _work/data/
