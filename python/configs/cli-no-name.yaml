@@ -1,0 +1,29 @@
+setup: cli-tool
+data_type: CONDITIONNESTACK2E
+system_message: You are a helpful programming assistant and an expert Java programmer. You are helping a user writing exceptional-behavior tests for their Java code.
+with_name: False
+split: rq2
+
+base_model_name: codellama/CodeLlama-7b-Instruct-hf
+model_name: lora-codellama-7b
+zero_shot: false
+
+model_type: no-name
+
+# data
+test_data: setup/cli-tool/eval/test
+test_data_file: test-cli-tool.jsonl
+
+quant_config: {}
+
+QuantLLaMAConfig:
+    n_gpu_layers: -1
+    n_ctx: 4096
+    verbose: false
+
+GenerationConfig:
+    max_new_tokens: 512
+    do_sample: true
+    temperature: 0.0
+
+prompt_max_length: 1000

@@ -101,6 +101,26 @@ class CodeLlama:
         self.model.config.use_cache = False
         self.model.config.pretraining_tp = 1
 
+    def load_model(self, target_ckpt: Optional[str] = None):
+        if self.config["zero_shot"]:
+            self._load_hf_model()
+        elif "hf_adapter" in self.config:
+            self._load_hf_model()
+            lora_config = peft.config.PeftConfig.from_pretrained(
+                self.config['hf_adapter']['name'],
+                self.config['hf_adapter']['revision'],
+            )
+            self.model = self.model.add_adapter(lora_config)
+        else:
+            if target_ckpt is None:
+                target_ckpt = self.exp_dir
+            logger.info(f"Using {target_ckpt} checkpoint for inference")
+            self.model = AutoModelForCausalLM.from_pretrained(
+                target_ckpt,
+                device_map="auto",
+            )
+        self.load_tokenizer()
+
     def load_train_params(self):
         self.train_params = TrainingArguments(
             output_dir=self.exp_dir,
@@ -187,13 +207,14 @@ class CodeLlama:
             pad_token_id=self.tokenizer.eos_token_id,
         )
         model_preds = self.do_inference(dataset, generation_config)
-        su.io.dump(self.exp_dir / f"{self.split}-set-model-outputs.jsonl", model_preds)
-        self.format_llama_predictions(
-            self.exp_dir / f"{self.split}-set-model-outputs.jsonl", split=split
-        )
+        su.io.dump(self.exp_dir / f"{self.split}-set-model-outputs.jsonl",
+                   model_preds)
+        self.format_llama_predictions(self.exp_dir /
+                                      f"{self.split}-set-model-outputs.jsonl",
+                                      split=split)
         end_time = time.time()
         print("++++++++++++++++++++++++++++++++++++++")
-        print(f"Runtime is {end_time - start_time}")
+        print(f"Runtime is {end_time - start_time} seconds")
 
     ########################
     # helpers #
@@ -247,7 +268,7 @@ class CodeLlama:
         #     raw_dataset
         # ), "Number of predictions does not match"
         llm_result_list = []
-        with tqdm(total=len(raw_dataset), desc="Iterate predictions") as pbar:
+        with tqdm(total=len(raw_dataset), desc="Processing generated EBTs") as pbar:
             index = 0
             for data_id, pred_list in id_2_preds.items():
                 while raw_dataset[index].id != data_id:

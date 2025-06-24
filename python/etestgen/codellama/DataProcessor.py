@@ -89,7 +89,7 @@ class DataProcessor:
         test_dataset = self.load_test_data()
         with tqdm(
             total=len(test_dataset),
-            desc="Processing test data for CodeLLaMA",
+            desc="Processing data for LLM inference",
         ) as pbar:
             for mut_dt in test_dataset:
                 data_list = self.format_data_for_llama(self.data_type)(mut_dt)
@@ -525,7 +525,10 @@ class DataProcessor:
         mut_code = dt.mut
         if dt.e_stack_trace:
             mut_code = add_called_comment_to_method(dt.mut, dt.e_stack_trace[0][1])
-        etest_name = dt.test_e_key.split("#")[1]
+        if self.config["with_name"]:
+            etest_name = dt.test_e_key.split("#")[1]
+        else:
+            etest_name = ""
         etest_context = dt.test_context.replace("adhoc_", "").replace(
             "/*TEST PLACEHOLDER*/", ""
         )
@@ -613,7 +616,10 @@ class DataProcessor:
         mut_code = dt.mut
         if dt.e_stack_trace:
             mut_code = add_called_comment_to_method(dt.mut, dt.e_stack_trace[0][1])
-        etest_name = dt.test_e_key.split("#")[1]
+        if self.config["with_name"]:
+            etest_name = dt.test_e_key.split("#")[1]
+        else:
+            etest_name = ""
         etest_context = dt.test_context.replace("adhoc_", "").replace(
             "/*TEST PLACEHOLDER*/", ""
         )
