@@ -1,0 +1,30 @@
+services:
+  tool:
+    build: .
+    volumes:
+      - .:/workspace
+    tty: true
+    stdin_open: true
+    depends_on:
+      - ollama
+    environment:
+      - OLLAMA_HOST=http://ollama:11434
+    networks:
+      - ollama_network
+
+  ollama:
+    image: ollama/ollama:latest
+    tty: true
+    volumes:
+      - ollama_data:/root/.ollama
+    ports:
+      - "11434:11434"
+    networks:
+      - ollama_network
+
+networks:
+  ollama_network:
+    driver: bridge
+
+volumes:
+  ollama_data: {}

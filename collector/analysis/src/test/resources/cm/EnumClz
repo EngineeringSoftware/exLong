@@ -1,0 +1,57 @@
+package cm;
+
+import java.util.Arrays;
+
+public enum EnumClz {
+
+    /**
+     * SMTP
+     */
+    SMTP(25),
+    /**
+     * Secure SMTP
+     */
+    SMTPS(465),
+    /**
+     * POP3
+     */
+    POP3(110),
+    /**
+     * Secure POP3
+     */
+    POP3S(995),
+    /**
+     * IMAP
+     */
+    IMAP(143),
+    /**
+     * Secure IMAP
+     */
+    IMAPS(993);
+
+    /**
+     * The default port.
+     */
+    int port;
+
+    /**
+     * Private constructor, including default port
+     */
+    EnumClz(final int pPort) {
+        port = pPort;
+    }
+
+    static EnumClz findByPort(int pPort) {
+        for (EnumClz p : values()) {
+            if (pPort == p.port) {
+                return p;
+            }
+        }
+        throw new IllegalArgumentException("Unknown port " + pPort + ", supported ports are " + Arrays.toString(values()));
+    }
+
+    @Override
+    public String toString() {
+        return name() + '(' + Integer.toString(port) + ')';
+    }
+}

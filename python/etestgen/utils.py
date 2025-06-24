@@ -18,8 +18,6 @@ from scipy import stats
 from collections import defaultdict
 from etestgen.macros import Macros
 
-from etestgen.eval.metrics import bleu, code_bleu, edit_sim, rouge_l
-
 logger = su.log.get_logger(__name__)
 
 
@@ -128,6 +126,10 @@ def compute_similarity_metrics(
         # dummy empty prediction, to simplify corner case handling
         topk = [[]]
     metrics_all = collections.defaultdict(list)
+
+    # HACK put import here so it doesn't break the whole program when the import fails
+    from etestgen.eval.metrics import bleu, code_bleu, edit_sim, rouge_l
+
     for pred in topk:
         metrics_all["xmatch"].append(100 if gold == pred else 0)
         metrics_all["bleu"].append(bleu(gold, pred))

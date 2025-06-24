@@ -91,30 +91,27 @@ class ExlongCli:
 
     def generate_coverage_data(self):
         project = su.io.load(self._repos_file_path, clz=List[Project])[0]
-        if not os.path.isdir(
-            Macros.work_dir / "coverage-new" / project.full_name,
-        ):
-            etest_cov_collector = (
-                compute_etest_coverage.EtestCoverageComputer()
-            )
-            test_cov_collector = compute_test_coverage.TestCoverageCollector()
-            stacktrace_collector = (
-                collect_stack_trace_from_netest.TestStackTraceCollector()
-            )
-            etest_cov_collector.compute_coverage_data(
-                repos_file=self._repos_file_path
-            )
-            test_cov_collector.compute_netest_coverage(
-                repos_file=self._repos_file_path
-            )
-            stacktrace_collector.compute_netest_coverage(
-                out_dir=Macros.work_dir / "coverage-new",
-                repos_file=self._repos_file_path,
-            )
-            stacktrace_collector.collect_project_stack_trace_with_etypes(
-                project,
-                out_dir=Macros.work_dir / "coverage-new" / project.full_name,
-            )
+        etest_cov_collector = (
+            compute_etest_coverage.EtestCoverageComputer()
+        )
+        test_cov_collector = compute_test_coverage.TestCoverageCollector()
+        stacktrace_collector = (
+            collect_stack_trace_from_netest.TestStackTraceCollector()
+        )
+        etest_cov_collector.compute_coverage_data(
+            repos_file=self._repos_file_path
+        )
+        test_cov_collector.compute_netest_coverage(
+            repos_file=self._repos_file_path
+        )
+        stacktrace_collector.compute_netest_coverage(
+            out_dir=Macros.work_dir / "coverage-new",
+            repos_file=self._repos_file_path,
+        )
+        stacktrace_collector.collect_project_stack_trace_with_etypes(
+            project,
+            out_dir=Macros.work_dir / "coverage-new" / project.full_name,
+        )
 
     def generate_machine_view_dataset(self):
         if os.path.isdir(Macros.data_dir / "new-rq2-public"):
