@@ -1,0 +1,19 @@
+package cm;
+
+public class BTest {
+
+    public void test() {
+        System.out.println("Hello World");
+    }
+
+    class InnerClass {
+        public void test() {
+            System.out.println("Hello World");
+        }
+    }
+
+    public static void main(String[] args) {
+        System.out.println("Hello World");
+    }
+
+}

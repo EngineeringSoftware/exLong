@@ -11,7 +11,7 @@ from transformers import (
 )
 from tqdm import tqdm
 
-# from peft import LoraConfig
+import peft
 # from trl import SFTTrainer
 from pathlib import Path
 from typing import *
@@ -26,14 +26,15 @@ logger = su.log.get_logger(__name__, su.log.INFO)
 
 
 class CodeLlama:
-    def __init__(
-        self, config_file: Union[Path, str], train_seed: Optional[int] = None
-    ) -> None:
-        self.config = su.io.load(config_file)
+
+    def __init__(self,
+                 config_file: Union[Path, str],
+                 train_seed: Optional[int] = None) -> None:
+        self.config: Dict[str,Any] = su.io.load(config_file)  # type: ignore
         self.config_file_path = config_file
         self.quant_config = BitsAndBytesConfig(
-            **self.config["quant_config"], bnb_4bit_compute_dtype=torch.float16
-        )  # do not quant now
+            **self.config["quant_config"],
+            bnb_4bit_compute_dtype=torch.float16)  # do not quant now
         self.base_model_name = self.config["base_model_name"]
         self.model_name = self.config["model_name"]
         if train_seed is not None:
@@ -86,13 +87,12 @@ class CodeLlama:
         return self.val_dataset
 
     def load_tokenizer(self):
-        self.tokenizer = AutoTokenizer.from_pretrained(
-            self.base_model_name, trust_remote_code=True
-        )
+        self.tokenizer = AutoTokenizer.from_pretrained(self.base_model_name,
+                                                       trust_remote_code=True)
         self.tokenizer.pad_token = self.tokenizer.eos_token
         self.tokenizer.padding_side = "right"  # Fix for fp16
 
-    def load_model(self):
+    def _load_hf_model(self):
         self.model = AutoModelForCausalLM.from_pretrained(
             self.base_model_name,
             device_map="auto",
@@ -100,6 +100,26 @@ class CodeLlama:
         logger.info("Successfully loaded model")
         self.model.config.use_cache = False
         self.model.config.pretraining_tp = 1
+
+    def load_model(self, target_ckpt: Optional[str] = None):
+        if self.config["zero_shot"]:
+            self._load_hf_model()
+        elif "hf_adapter" in self.config:
+            self._load_hf_model()
+            lora_config = peft.config.PeftConfig.from_pretrained(
+                self.config['hf_adapter']['name'],
+                self.config['hf_adapter']['revision'],
+            )
+            self.model = self.model.add_adapter(lora_config)
+        else:
+            if target_ckpt is None:
+                target_ckpt = self.exp_dir
+            logger.info(f"Using {target_ckpt} checkpoint for inference")
+            self.model = AutoModelForCausalLM.from_pretrained(
+                target_ckpt,
+                device_map="auto",
+            )
+        self.load_tokenizer()
 
     def load_train_params(self):
         self.train_params = TrainingArguments(
@@ -110,16 +130,14 @@ class CodeLlama:
     def formatting_func(self, example: Any):
         prompt_list = []
         for i in range(len(example["input"])):
-            query = self.truncate_prompt(
-                example["input"][i], self.config["prompt_max_length"]
-            )
+            query = self.truncate_prompt(example["input"][i],
+                                         self.config["prompt_max_length"])
             text = f"{query}\n{example['output'][i]}"
             prompt_list.append(text)
         return prompt_list
 
-    def do_inference(
-        self, dataset: Iterable[Any], generation_config: GenerationConfig
-    ) -> List[str]:
+    def do_inference(self, dataset: Iterable[Any],
+                     generation_config: GenerationConfig) -> List[str]:
         """
         Do inference on the given dataset.
         Cut the prompt into fixed length
@@ -131,7 +149,8 @@ class CodeLlama:
                 query = dt["instruction"]
                 data_id = dt["id"]
                 # cut input
-                query = self.truncate_prompt(query, self.config["prompt_max_length"])
+                query = self.truncate_prompt(query,
+                                             self.config["prompt_max_length"])
                 inputs = self.tokenizer(query, return_tensors="pt").to("cuda")
                 outputs = self.model.generate(
                     input_ids=inputs["input_ids"],
@@ -155,24 +174,14 @@ class CodeLlama:
         Run the Llama model to do inference. (test set or val set)
         """
         import time
-
         start_time = time.time()
         if inference_seed:
             torch.manual_seed(inference_seed)
             torch.cuda.manual_seed(inference_seed)
             logger.info(f"Set seed to {inference_seed}")
-        if self.config["zero_shot"]:
-            self.load_model()
-        else:
-            # target_ckpt = self.locate_ckpt(self.exp_dir)
-            if target_ckpt is None:
-                target_ckpt = self.exp_dir
-            logger.info(f"Using {target_ckpt} checkpoint for inference")
-            self.model = AutoModelForCausalLM.from_pretrained(
-                target_ckpt,
-                device_map="auto",
-            )
-        self.load_tokenizer()
+
+        self.load_model(target_ckpt)
+
         if split == "test":
             dataset = self.load_test_dataset()
         elif split == "val":
@@ -187,13 +196,14 @@ class CodeLlama:
             pad_token_id=self.tokenizer.eos_token_id,
         )
         model_preds = self.do_inference(dataset, generation_config)
-        su.io.dump(self.exp_dir / f"{self.split}-set-model-outputs.jsonl", model_preds)
-        self.format_llama_predictions(
-            self.exp_dir / f"{self.split}-set-model-outputs.jsonl", split=split
-        )
+        su.io.dump(self.exp_dir / f"{self.split}-set-model-outputs.jsonl",
+                   model_preds)
+        self.format_llama_predictions(self.exp_dir /
+                                      f"{self.split}-set-model-outputs.jsonl",
+                                      split=split)
         end_time = time.time()
         print("++++++++++++++++++++++++++++++++++++++")
-        print(f"Runtime is {end_time - start_time}")
+        print(f"Runtime is {end_time - start_time} seconds")
 
     ########################
     # helpers #
@@ -209,8 +219,7 @@ class CodeLlama:
         if len(token_ids) > max_length:
             token_ids = token_ids[:max_length]
             truncated_prompt = self.tokenizer.convert_tokens_to_string(
-                self.tokenizer.convert_ids_to_tokens(token_ids)
-            )
+                self.tokenizer.convert_ids_to_tokens(token_ids))
             truncated_prompt = (
                 f"{truncated_prompt}\n```\n [/INST]"  # add the instruction token
             )
@@ -218,25 +227,24 @@ class CodeLlama:
         else:
             return prompt
 
-    def format_llama_predictions(self, output_file_name: str, split: str = "test"):
+    def format_llama_predictions(self,
+                                 output_file_name: str,
+                                 split: str = "test"):
         """
         Format the llama predictions into LLMResults for evaluation.
         """
 
         if split == "test":
             raw_dataset = DataProcessor(
-                config_file=self.config_file_path
-            ).load_test_data()
+                config_file=self.config_file_path).load_test_data()
             dataset = self.load_test_dataset()
         elif split == "val":
             raw_dataset = DataProcessor(
-                config_file=self.config_file_path
-            ).load_val_data()
+                config_file=self.config_file_path).load_val_data()
             dataset = self.load_val_dataset()
         elif split == "real-test":
             raw_dataset = DataProcessor(
-                config_file=self.config_file_path
-            ).load_real_test_data()
+                config_file=self.config_file_path).load_real_test_data()
             dataset = self.load_real_test_dataset()
         else:
             raise ValueError(f"Invalid split: {split}")
@@ -247,7 +255,7 @@ class CodeLlama:
         #     raw_dataset
         # ), "Number of predictions does not match"
         llm_result_list = []
-        with tqdm(total=len(raw_dataset), desc="Iterate predictions") as pbar:
+        with tqdm(total=len(raw_dataset), desc="Processing generated EBTs") as pbar:
             index = 0
             for data_id, pred_list in id_2_preds.items():
                 while raw_dataset[index].id != data_id:
@@ -259,8 +267,7 @@ class CodeLlama:
                 prompts = []
                 for prompt, pred_str in pred_list:
                     predicted_test = extract_code_from_response(
-                        pred_str.split("[/INST]")[1].strip()
-                    ).strip()
+                        pred_str.split("[/INST]")[1].strip()).strip()
                     topk.append(predicted_test)
                     prompts.append(prompt)
                 gold = raw_dataset[index].test_e
@@ -280,9 +287,9 @@ class CodeLlama:
                 pbar.update(1)
 
         su.io.mkdir(pred_dir / f"{self.split}-results", fresh=True)
-        save_dataset(
-            pred_dir / f"{self.split}-results", llm_result_list, clz=LLMResults
-        )
+        save_dataset(pred_dir / f"{self.split}-results",
+                     llm_result_list,
+                     clz=LLMResults)
 
     @classmethod
     def locate_ckpt(cls, ckpt_dir: Path) -> Optional[Path]:
@@ -292,7 +299,8 @@ class CodeLlama:
             logger.info(f"No checkpoint found in {ckpt_dir}")
         elif len(ckpt_dirs) == 1:
             ckpt_file = ckpt_dirs[0]
-            logger.info(f"Found one checkpoint in {ckpt_dir}: {ckpt_file.name}")
+            logger.info(
+                f"Found one checkpoint in {ckpt_dir}: {ckpt_file.name}")
         else:
             ckpt_file = sorted(ckpt_dirs, key=lambda x: x.stat().st_mtime)[-1]
             logger.warning(

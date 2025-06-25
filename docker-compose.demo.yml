@@ -1,0 +1,11 @@
+services:
+  tool:
+    build: .
+    volumes:
+      - .:/workspace
+    tty: true
+    stdin_open: true
+    network_mode: "host"
+    environment:
+      - OLLAMA_HOST=${OLLAMA_HOST:-0.0.0.0}
+      - PYTHONPATH=/workspace/python/

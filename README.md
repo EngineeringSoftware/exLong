@@ -12,7 +12,6 @@ Title: [exLong: Generating Exceptional Behavior Tests with Large Language Models
 Authors: [Jiyang Zhang](https://jiyangzhang.github.io/), [Yu Liu](https://sweetstreet.github.io/), [Pengyu Nie](https://pengyunie.github.io/), [Junyi Jessy Li](https://jessyli.com/), [Milos Gligoric](http://users.ece.utexas.edu/~gligoric/)
 
 
-
 ```bibtex
 @inproceedings{ZhangETAL25exLong,
   author = {Zhang, Jiyang and Liu, Yu and Nie, Pengyu and Li, Junyi Jessy and Gligoric, Milos},
@@ -22,11 +21,27 @@ Authors: [Jiyang Zhang](https://jiyangzhang.github.io/), [Yu Liu](https://sweets
 }
 ```
 
+We also include the implementation of the CLI tool described in our FSE 2025 Demo Paper:
+
+Title: [A Tool for Generating Exceptional Behavior Tests With Large Language Models](https://arxiv.org/abs/2505.22818)
+
+Authors: [Linghan Zhong](https://about.tongero.com), [Samuel Yuan](https://samuelyuan.com), [Jiyang Zhang](https://jiyangzhang.github.io/), [Yu Liu](https://sweetstreet.github.io/), [Pengyu Nie](https://pengyunie.github.io/), [Junyi Jessy Li](https://jessyli.com/), [Milos Gligoric](http://users.ece.utexas.edu/~gligoric/)
+
+```bibtex
+@inproceedings{ZhongETAL25exLongTool,
+  author = {Zhong, Linghan and Yuan, Samuel and Zhang, Jiyang and Liu, Yu and Nie, Pengyu and Li, Junyi Jessy and Gligoric, Milos},
+  title = {A Tool for Generating Exceptional Behavior Tests With Large Language Models},
+  booktitle = {ACM International Conference on the Foundations of Software Engineering Demonstrations},
+  year = {2025},
+}
+```
+
 # Table of Contents
 1. [Quick Start][sec-hf] 🤗
 2. [Set Up][sec-setup] :rocket:
 3. [Experiments][sec-exp] :construction_worker:
 4. [Artifacts][sec-artifacts] :star:
+5. [CLI][sec-cli] :computer:
 
 
 # Quick Start
@@ -336,3 +351,83 @@ python -m etestgen.codellama.CodeLLaMA --config_file configs/eval/codellama-7b-m
 - [machine-view.tar.gz](https://utexas.box.com/shared/static/y4e52k5x8vk8vcr59lg33gebcg2m1caw.gz): The collected dataset for eval in **machine-view**. `rq2/`
 - [netest-diversity.tar.gz](https://utexas.box.com/shared/static/j417e93j1rdvdqz2yobttygfhucfbkjm.gz): The collected dataset we use to study how the different nEBTs affect model's performance (Table VII). `netest-diversity/`
 - [processed dataset](https://utexas.box.com/s/dwxneqvx1m1zw2t68tcugxmk1c7gitjm): The processed dataset (prompts) to train the exLong models.
+
+# CLI
+[sec-cli]: #cli
+
+## User-View Use Case
+
+In User View, Exlong generates an EBT for a user-specified target throw statement. Use the following command:
+
+```bash
+python -m etestgen.cli user_view [OPTIONS]
+```
+
+### Required Parameters
+
+- `--repo_path`: Local path or remote link to the git repository
+- `--mut_file_path`: Path to the file containing the MUT
+- `--mut_line`: Line number of the beginning of the MUT's definition
+- `--throw_file_path`: Path to the file containing the target throw statement
+- `--throw_line`: Line number of the target throw statement
+- `--test_context_path`: Path to the test file
+
+### Optional Parameters
+
+- `--sha`: Commit SHA (default: latest commit on the main branch)
+- `--test_name`: Name of the test method to be generated (default: none)
+- `--quant`: Whether to use quantized LLM (default: true)
+- `--pick_best`: Whether to sample multiple candidate EBTs and select the best test based on runtime evaluation (default: false)
+- `--output_file`: Output file path for the generated EBT, if not given the EBTs are added to the test object in `test_context_path`.
+- `--regenerate_data`: Whether to run collect "stack trace", "guard condition", and etc. (default: true)
+
+### Example
+
+```bash
+python -m etestgen.cli user_view \
+    --repo_path=./Wisp \
+    --mut_file_path=Scheduler.java \
+    --mut_line=180 \
+    --quant=true \
+    --throw_file_path=Scheduler.java \
+    --throw_line=340 \
+    --test_context_path=SchedulerTest.java \
+    --sha="ce1d9f3cb1944115ad98b4428ea24b24ab3faf56" \
+    --test_name=testSchedulerError \
+    --pick_best=True \
+    --output_file=./ExlongTest.java
+```
+
+This command will generate an exception-based test for the throw statement at line 340 in `Scheduler.java`, targeting the method that begins at line 180, and output the result to `ExlongTest.java`.
+
+## Machine View
+
+The Machine View generates EBTs for the entire codebase to cover all throw statements automatically. Use the following command:
+
+```bash
+python -m etestgen.cli machine_view [OPTIONS]
+```
+
+#### Required Parameters
+
+- `--repo_path` or `--repo_link`: Local path or remote link to the git repository
+- `--test_context_path`: Path to the test file
+
+#### Optional Parameters
+
+- `--sha`: Commit SHA (default: latest commit on the main branch)
+- `--pick_best`: Whether to sample multiple candidate EBTs for each throw statement and select the best test based on runtime evaluation (default: false)
+- `--quant`: Whether to use quantized LLM (default: true)
+- `--timeout`: Time budget for the tool to finish processing in seconds (default: infinity)
+- `--output_file`: Output file path for the generated EBTs, if not given the EBTs are added to the test object in `test_context_path`.
+- `--regenerate_data`: Whether to run collect "stack trace", "guard condition", and etc (default: true)
+#### Example
+
+```bash
+python -m etestgen.cli machine_view \
+    --repo_link="https://github.com/Coreoz/Wisp.git" \
+    --sha="ce1d9f3cb1944115ad98b4428ea24b24ab3faf56" \
+    --timeout=1000
+```
+
+This command will analyze the entire Wisp repository at the specified commit and generate EBTs for all throw statements within the given time budget of 1000 seconds.

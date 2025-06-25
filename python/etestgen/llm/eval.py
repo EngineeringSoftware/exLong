@@ -194,7 +194,7 @@ class LLMCodeEvaluator:
                 pbar.update(1)
         runtime_metrics_summary = summarize_metrics(aggregate_metrics(run_time_metrics))
         llm_results_with_metrics = sorted(
-            llm_results_with_metrics, key=lambda x: int(x.id)
+            llm_results_with_metrics, key=lambda x: x.id
         )
         save_dataset(self.prediction_dir, llm_results_with_metrics, clz=LLMResults)
         if selected_ids:
@@ -291,7 +291,6 @@ class LLMCodeEvaluator:
         """
 
         llm_outputs = load_dataset(save_dir=self.prediction_dir, clz=LLMResults)
-        breakpoint()
         return llm_outputs
 
     ########################
